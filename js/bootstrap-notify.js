@@ -20,17 +20,11 @@
   var Notification = function (element, options) {
     // Element collection
     this.$element = $(element);
-    this.$note    = $('<div class="alert"></div>');
+    this.$note    = $('<div class="alert"><div></div></div>');
     this.options  = $.extend(true, {}, $.fn.notify.defaults, options);
 
     // Setup from options
-    if(this.options.transition) {
-      if(this.options.transition == 'fade')
-        this.$note.addClass('in').addClass(this.options.transition);
-      else
-        this.$note.addClass(this.options.transition);
-    } else
-      this.$note.addClass('fade').addClass('in');
+    this.$note.addClass(this.options.transition);
 
     if(this.options.type)
       this.$note.addClass('alert-' + this.options.type);
@@ -50,7 +44,7 @@
 
     if(this.options.closable) {
       var link = $('<a class="close pull-right" href="#">&times;</a>');
-      $(link).on('click', $.proxy(onClose, this));
+      $(link).on('click', $.proxy(this.hide, this));
       this.$note.prepend(link);
     }
 
@@ -65,17 +59,28 @@
   };
 
   Notification.prototype.show = function () {
-    if(this.options.fadeOut.enabled)
-      this.$note.delay(this.options.fadeOut.delay || 3000).fadeOut('slow', $.proxy(onClose, this));
+    this.$note.on('transitionend', $.proxy(function(){
+      this.$note.off('transitionend');
+      if (this.options.onShow) this.options.onShow();
+      this.$note.addClass('transition-ready');
+    }, this));
 
     this.$element.append(this.$note);
-    this.$note.alert();
+    setTimeout($.proxy(function(){
+      this.$note.addClass('in');
+    }, this), 25);
+
+    if (this.options.fadeOut.enabled){
+      setTimeout($.proxy(this.hide, this), this.options.fadeOut.delay);
+    }
   };
 
   Notification.prototype.hide = function () {
-    if(this.options.fadeOut.enabled)
-      this.$note.delay(this.options.fadeOut.delay || 3000).fadeOut('slow', $.proxy(onClose, this));
-    else onClose.call(this);
+    this.$note.on('transitionend', $.proxy(onClose, this));
+    this.$note.removeClass('transition-ready')
+    setTimeout($.proxy(function(){
+      this.$note.removeClass('in');
+    }, this), 25);
   };
 
   $.fn.notify = function (options) {
